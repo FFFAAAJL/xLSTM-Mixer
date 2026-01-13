@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Any
+from typing import Any, Union, Optional
 import torch
 import numpy as np
 from torch import nn, optim
@@ -19,7 +19,7 @@ class ShortTermForecastingExp(LightningModule):
     def __init__(
         self,
         criterion: nn.Module,
-        architecture: BaseModel | xLSTMMixer,
+        architecture: Union[BaseModel, xLSTMMixer],
         task_options: ForecastingTaskOptions = ForecastingTaskOptions.MULTIVARIATE_2_MULTIVARIATE,
     ):
         super().__init__()
@@ -59,7 +59,7 @@ class ShortTermForecastingExp(LightningModule):
 
     def training_step(
         self, batch: BatchType
-    ) -> torch.Tensor | os.Mapping[str, Any] | None:
+    ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -91,7 +91,7 @@ class ShortTermForecastingExp(LightningModule):
 
     def validation_step(
         self, batch: BatchType
-    ) -> torch.Tensor | os.Mapping[str, Any] | None:
+    ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -121,7 +121,7 @@ class ShortTermForecastingExp(LightningModule):
 
         return loss
 
-    def test_step(self, batch: BatchType) -> torch.Tensor | os.Mapping[str, Any] | None:
+    def test_step(self, batch: BatchType) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()

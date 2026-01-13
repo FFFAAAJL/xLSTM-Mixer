@@ -14,6 +14,9 @@ done
 seeds=(2021 2022 2023)
 dataset="Weather"
 
+# Windows 数据集路径（Git Bash 格式）
+DATASET_PATH="/e/LSTM/xLSTM-Mixer-main/xLSTM-Mixer/common-ts/datasets/tslib_datasets"
+
 pred_len=96
 seq_len=768
 xlstm_dropout=0.25
@@ -33,13 +36,13 @@ for seed in "${seeds[@]}"; do
     python -m xlstm_mixer fit+test \
         --data ForecastingTSLibDataModule \
         --data.dataset_name $dataset \
+        --data.root_path "$DATASET_PATH" \
+        --data.num_workers 0 \
         --optimizer.lr $lr \
         --data.seq_len $seq_len \
         --data.pred_len $pred_len \
         --data.label_len 0 \
         --data.batch_size $batch_size \
-        --data.num_workers 4 \
-        --data.persistent_workers true \
         --model LongTermForecastingExp \
         --model.criterion torch.nn.L1Loss \
         --model.architecture xLSTMMixer  \
@@ -80,13 +83,13 @@ for seed in "${seeds[@]}"; do
     python -m xlstm_mixer fit+test \
         --data ForecastingTSLibDataModule \
         --data.dataset_name $dataset \
+        --data.root_path "$DATASET_PATH" \
+        --data.num_workers 0 \
         --optimizer.lr $lr \
         --data.seq_len $seq_len \
         --data.pred_len $pred_len \
         --data.label_len 0 \
         --data.batch_size $batch_size \
-        --data.num_workers 4 \
-        --data.persistent_workers true \
         --model LongTermForecastingExp \
         --model.criterion torch.nn.L1Loss \
         --model.architecture xLSTMMixer  \
@@ -127,13 +130,13 @@ for seed in "${seeds[@]}"; do
     python -m xlstm_mixer fit+test \
         --data ForecastingTSLibDataModule \
         --data.dataset_name $dataset \
+        --data.root_path "$DATASET_PATH" \
+        --data.num_workers 0 \
         --optimizer.lr $lr \
         --data.seq_len $seq_len \
         --data.pred_len $pred_len \
         --data.label_len 0 \
         --data.batch_size $batch_size \
-        --data.num_workers 4 \
-        --data.persistent_workers true \
         --model LongTermForecastingExp \
         --model.criterion torch.nn.L1Loss \
         --model.architecture xLSTMMixer  \
@@ -174,13 +177,13 @@ for seed in "${seeds[@]}"; do
     python -m xlstm_mixer fit+test \
         --data ForecastingTSLibDataModule \
         --data.dataset_name $dataset \
+        --data.root_path "$DATASET_PATH" \
+        --data.num_workers 0 \
         --optimizer.lr $lr \
         --data.seq_len $seq_len \
         --data.pred_len $pred_len \
         --data.label_len 0 \
         --data.batch_size $batch_size \
-        --data.num_workers 4 \
-        --data.persistent_workers true \
         --model LongTermForecastingExp \
         --model.criterion torch.nn.L1Loss \
         --model.architecture xLSTMMixer  \

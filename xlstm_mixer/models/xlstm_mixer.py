@@ -187,7 +187,7 @@ class xLSTMMixer(BaseModel):
         else:
             self.fc = nn.Linear(self.xlstm_embedding_dim, self.pred_len)
 
-        self.reversible_instance_norm = RevIN(enc_in, affine=False)
+        self.reversible_instance_norm = RevIN(enc_in, affine=True)
 
         self.decomposition = series_decomp(25)
         self.seq_var_2_var_seq = Rearrange("batch seq var -> batch var seq")

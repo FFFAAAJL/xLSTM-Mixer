@@ -1,6 +1,6 @@
 import inspect
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Union, Optional
 from lightning import LightningModule
 import os
 from matplotlib import pyplot as plt
@@ -34,10 +34,10 @@ class ForecastingExp(LightningModule):
     def __init__(
         self,
         criterion: nn.Module,
-        architecture: BaseModel | xLSTMMixer | PatchTST | TimesNet | iTransformer| xLSTMTime | LSTM | TimeMixer,
+        architecture: Union[BaseModel, xLSTMMixer, PatchTST, TimesNet, iTransformer, xLSTMTime, LSTM, TimeMixer],
         task: Task,
         task_options: ForecastingTaskOptions = ForecastingTaskOptions.MULTIVARIATE_2_MULTIVARIATE,
-        metrics: list[tm.Metric] | dict[str, tm.Metric] = [tm.MeanSquaredError()],
+        metrics: Union[list[tm.Metric], dict[str, tm.Metric]] = [tm.MeanSquaredError()],
     ) -> None:
         super().__init__()
         # self.seq_len = seq_len
@@ -71,7 +71,7 @@ class ForecastingExp(LightningModule):
 
     def training_step(
         self, batch: BatchType
-    ) -> torch.Tensor | os.Mapping[str, Any] | None:
+    ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -105,7 +105,7 @@ class ForecastingExp(LightningModule):
 
     def validation_step(
         self, batch: BatchType
-    ) -> torch.Tensor | os.Mapping[str, Any] | None:
+    ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -190,7 +190,7 @@ class ForecastingExp(LightningModule):
         #         self.plot_mem_tokens(tok_path, self.mem_tokens[0][i], f"tok{i}", i)
         
 
-    def test_step(self, batch: BatchType) -> torch.Tensor | os.Mapping[str, Any] | None:
+    def test_step(self, batch: BatchType) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -240,7 +240,7 @@ class LongTermForecastingExp(ForecastingExp):
     def __init__(
         self,
         criterion: nn.Module,
-        architecture: BaseModel | xLSTMMixer,
+        architecture: Union[BaseModel, xLSTMMixer],
         task_options: ForecastingTaskOptions = ForecastingTaskOptions.MULTIVARIATE_2_MULTIVARIATE,
     ) -> None:
         super().__init__(
@@ -257,7 +257,7 @@ class ShortTermForecastingExp(ForecastingExp):
     def __init__(
         self,
         criterion: nn.Module,
-        architecture: BaseModel | xLSTMMixer | LSTM | xLSTMTime,
+        architecture: Union[BaseModel, xLSTMMixer, LSTM, xLSTMTime],
         task_options: ForecastingTaskOptions = ForecastingTaskOptions.MULTIVARIATE_2_MULTIVARIATE,
     ) -> None:
         super().__init__(

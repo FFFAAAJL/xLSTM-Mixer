@@ -219,52 +219,49 @@ def main():  # pragma: no cover
 
     if len(args) > 1:
         args = args[1:]
-        match args:
-            case ("fit+test", *rest_args):
-                fit_and_test(rest_args)
-                return
-            case ("fit+test-multi", *rest_args):
-                idx = rest_args.index("--seed_everything")
+        if len(args) > 0 and args[0] == "fit+test":
+            fit_and_test(args[1:])
+            return
+        elif len(args) > 0 and args[0] == "fit+test-multi":
+            rest_args = args[1:]
+            idx = rest_args.index("--seed_everything")
 
-                gpu_idx = os.environ["CUDA_VISIBLE_DEVICES"]
+            gpu_idx = os.environ["CUDA_VISIBLE_DEVICES"]
 
-                orig_seed = int(rest_args[idx + 1])
-                cnt = 3
-                with Pool(cnt) as p:
-                    ress = p.starmap(
-                        helper,
-                        [
-                            (i < 3, rest_args, gpu_idx, idx, str(orig_seed + i))
-                            for i in range(cnt)
-                        ],
-                    )
-
-                # ress = []
-                # for i in range(3):
-                #     rest_args[idx + 1] = str(orig_seed + i)
-                #     res = fit_and_test(rest_args)
-                #     ress.append(res)
-                for i in range(cnt):
-                    print(f"Seed 202{i+1}: {ress[i]}")
-                print("Average:")
-                print(
-                    {
-                        "mse_test": sum([res["test/mse"] for res in ress]) / cnt,
-                        "mae_test": sum([res["test/mae"] for res in ress]) / cnt,
-                    }
+            orig_seed = int(rest_args[idx + 1])
+            cnt = 3
+            with Pool(cnt) as p:
+                ress = p.starmap(
+                    helper,
+                    [
+                        (i < 3, rest_args, gpu_idx, idx, str(orig_seed + i))
+                        for i in range(cnt)
+                    ],
                 )
 
-                # rest_args[idx + 1]
-                # fit_and_test(rest_args)
-                return
+            # ress = []
+            # for i in range(3):
+            #     rest_args[idx + 1] = str(orig_seed + i)
+            #     res = fit_and_test(rest_args)
+            #     ress.append(res)
+            for i in range(cnt):
+                print(f"Seed 202{i+1}: {ress[i]}")
+            print("Average:")
+            print(
+                {
+                    "mse_test": sum([res["test/mse"] for res in ress]) / cnt,
+                    "mae_test": sum([res["test/mae"] for res in ress]) / cnt,
+                }
+            )
 
-            case ("tune", *rest_args):
-                results = tune(rest_args)
-                print(results)
-                return
+            # rest_args[idx + 1]
+            # fit_and_test(rest_args)
+            return
 
-            case _:
-                pass
+        elif len(args) > 0 and args[0] == "tune":
+            results = tune(args[1:])
+            print(results)
+            return
 
     run_task_cli()
 

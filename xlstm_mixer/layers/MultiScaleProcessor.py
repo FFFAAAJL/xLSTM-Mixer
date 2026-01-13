@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from typing import Optional
 from einops import rearrange
 
 class MultiScaleProcessor(nn.Module):
@@ -28,7 +29,7 @@ class MultiScaleProcessor(nn.Module):
         else:
             raise ValueError(f"Unsupported down sampling method: {self.down_sampling_method}")
 
-    def forward(self, x_enc: torch.Tensor, x_mark_enc: torch.Tensor | None):
+    def forward(self, x_enc: torch.Tensor, x_mark_enc: Optional[torch.Tensor]):
         # B,T,C -> B,C,T
         x_enc = rearrange(x_enc, "b t v -> b v t")
 

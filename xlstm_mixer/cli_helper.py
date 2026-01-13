@@ -35,6 +35,8 @@ from lightning_utilities.core.rank_zero import _warn
 from functools import partial, update_wrapper
 from types import MethodType
 from lightning.pytorch.callbacks import BaseFinetuning
+from xlstm_mixer.lit.forecast_visualize_cb import ForecastVisualizeCallback
+from xlstm_mixer.lit.callbacks import FSSPruningCallback
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -270,9 +272,14 @@ class TaskCLI(LightningCLI):
         super().add_arguments_to_parser(parser)
 
         # if parser.get_value("model.task") != Task.CLASSIFICATION:
-        # parser.add_lightning_class_args(
-        #     ForecastVisualizeCallback, "forecast_visualize_cb"
-        # )
+        parser.add_lightning_class_args(
+            ForecastVisualizeCallback, "forecast_visualize_cb"
+        )
+        
+        # Add FSS Pruning callback support
+        parser.add_lightning_class_args(
+            FSSPruningCallback, "pruning_cb"
+        )
 
         parser.add_optimizer_args((optim.Adam, optim.RAdam))
         parser.add_lr_scheduler_args(
@@ -325,6 +332,11 @@ class TaskCLI(LightningCLI):
                 # "swa.swa_lrs": 1e-2,
                 # "swa.swa_epoch_start": 6,
                 # "swa.annealing_epochs": 20
+                "pruning_cb.target_sparsity": 0.0, # Default: pruning disabled
+                "pruning_cb.bank_num": 4,
+                "pruning_cb.bank_size": 4, # Default: 4 (NVIDIA 2:4 compliant if used)
+                "pruning_cb.warmup_epochs": 10,
+                "pruning_cb.start_epoch": 0,
             }
         )
 

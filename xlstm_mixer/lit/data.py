@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 from lightning.pytorch import LightningDataModule
 from xlstm_mixer.data_provider.data_factory import data_provider, data_dict
 from .enums import Task, TimeFreq, ForecastingTaskOptions
@@ -64,16 +64,15 @@ class TSLibDataModule(LightningDataModule):
             val_flag = "TEST"
             test_flag = "TEST"
 
-        match stage:
-            case "fit":
-                self.train_dataset, _ = data_provider(self, train_flag)
-                self.val_dataset, _ = data_provider(self, val_flag)
-            case "validate":
-                self.val_dataset, _ = data_provider(self, val_flag)
-            case "test":
-                self.test_dataset, _ = data_provider(self, test_flag)
-            case _:
-                raise NotImplementedError(f"Stage {stage} not supported")
+        if stage == "fit":
+            self.train_dataset, _ = data_provider(self, train_flag)
+            self.val_dataset, _ = data_provider(self, val_flag)
+        elif stage == "validate":
+            self.val_dataset, _ = data_provider(self, val_flag)
+        elif stage == "test":
+            self.test_dataset, _ = data_provider(self, test_flag)
+        else:
+            raise NotImplementedError(f"Stage {stage} not supported")
 
     def _make_dataloader(self, dataset: Dataset, shuffle: bool = True):
         if self.task == Task.CLASSIFICATION:
@@ -100,72 +99,71 @@ class TSLibDataModule(LightningDataModule):
         )
 
     def configure_dataset_specifics(self):
-        self.data_path: str | None = None
+        self.data_path: Optional[str] = None
 
         if self.task == Task.CLASSIFICATION:
             self.root_path = str(self.root_path / self.dataset_name)
             # this string cast is needed for Shenanigans in tslib
             return
 
-        match self.dataset_name:
-            case "PEMS03":
-                self.enc_in = 358
-                self.root_path = self.root_path / "PEMS"
-                self.data_path = "PEMS03.npz"
-            case "PEMS04":
-                self.enc_in = 307
-                self.root_path = self.root_path / "PEMS"
-                self.data_path = "PEMS04.npz"
-            case "PEMS07":
-                self.enc_in = 883
-                self.root_path = self.root_path / "PEMS"
-                self.data_path = "PEMS07.npz"
-            case "PEMS08":
-                self.enc_in = 170
-                self.root_path = self.root_path / "PEMS"
-                self.data_path = "PEMS08.npz"
-            case "Weather":
-                self.enc_in = 21
-                self.root_path = self.root_path / "weather"
-                self.data_path = "weather.csv"
-            case "Traffic":
-                self.enc_in = 862
-                self.root_path /= "traffic"
-                self.data_path = "traffic.csv"
-            case "Electricity":
-                self.enc_in = 321
-                self.root_path /= "electricity"
-                self.data_path = "electricity.csv"
-            case "ETTh1":
-                self.enc_in = 7
-                self.root_path /= "ETT-small"
-                self.data_path = "ETTh1.csv"
-            case "ETTh2":
-                self.enc_in = 7
-                self.root_path /= "ETT-small"
-                self.data_path = "ETTh2.csv"
-            case "ETTm1":
-                self.enc_in = 7
-                self.root_path /= "ETT-small"
-                self.data_path = "ETTm1.csv"
-            case "ETTm2":
-                self.enc_in = 7
-                self.root_path /= "ETT-small"
-                self.data_path = "ETTm2.csv"
-            case "Ili":
-                self.enc_in = 9  # TODO check
-                self.root_path /= "illness"
-                self.data_path = "national_illness.csv"
-            case "Solar":
-                self.enc_in = 137
-                self.root_path /= "solar"
-                self.data_path = "solar_AL.txt"
-            case "Exchange":
-                self.enc_in = 137
-                self.root_path /= "exchange_rate"
-                self.data_path = "exchange_rate.csv"
-            case _:
-                raise UserWarning(f"Dataset {self.dataset_name} not supported")
+        if self.dataset_name == "PEMS03":
+            self.enc_in = 358
+            self.root_path = self.root_path / "PEMS"
+            self.data_path = "PEMS03.npz"
+        elif self.dataset_name == "PEMS04":
+            self.enc_in = 307
+            self.root_path = self.root_path / "PEMS"
+            self.data_path = "PEMS04.npz"
+        elif self.dataset_name == "PEMS07":
+            self.enc_in = 883
+            self.root_path = self.root_path / "PEMS"
+            self.data_path = "PEMS07.npz"
+        elif self.dataset_name == "PEMS08":
+            self.enc_in = 170
+            self.root_path = self.root_path / "PEMS"
+            self.data_path = "PEMS08.npz"
+        elif self.dataset_name == "Weather":
+            self.enc_in = 21
+            self.root_path = self.root_path / "weather"
+            self.data_path = "weather.csv"
+        elif self.dataset_name == "Traffic":
+            self.enc_in = 862
+            self.root_path /= "traffic"
+            self.data_path = "traffic.csv"
+        elif self.dataset_name == "Electricity":
+            self.enc_in = 321
+            self.root_path /= "electricity"
+            self.data_path = "electricity.csv"
+        elif self.dataset_name == "ETTh1":
+            self.enc_in = 7
+            self.root_path /= "ETT-small"
+            self.data_path = "ETTh1.csv"
+        elif self.dataset_name == "ETTh2":
+            self.enc_in = 7
+            self.root_path /= "ETT-small"
+            self.data_path = "ETTh2.csv"
+        elif self.dataset_name == "ETTm1":
+            self.enc_in = 7
+            self.root_path /= "ETT-small"
+            self.data_path = "ETTm1.csv"
+        elif self.dataset_name == "ETTm2":
+            self.enc_in = 7
+            self.root_path /= "ETT-small"
+            self.data_path = "ETTm2.csv"
+        elif self.dataset_name == "Ili":
+            self.enc_in = 9  # TODO check
+            self.root_path /= "illness"
+            self.data_path = "national_illness.csv"
+        elif self.dataset_name == "Solar":
+            self.enc_in = 137
+            self.root_path /= "solar"
+            self.data_path = "solar_AL.txt"
+        elif self.dataset_name == "Exchange":
+            self.enc_in = 137
+            self.root_path /= "exchange_rate"
+            self.data_path = "exchange_rate.csv"
+        else:
+            raise UserWarning(f"Dataset {self.dataset_name} not supported")
 
     def train_dataloader(self):
         return self._make_dataloader(self.train_dataset, shuffle=True)

@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+from typing import Optional
 
 from xlstm_mixer.lit.enums import Task
 
@@ -31,7 +32,7 @@ class BaseModel(nn.Module):
     def task(self, task: Task):
         self._task = task
 
-    def forecast(self, x_enc: torch.Tensor, x_mark_enc: torch.Tensor | None = None):
+    def forecast(self, x_enc: torch.Tensor, x_mark_enc: Optional[torch.Tensor] = None):
         raise NotImplementedError
 
     def imputation(self, x_enc):
@@ -44,8 +45,7 @@ class BaseModel(nn.Module):
         raise NotImplementedError
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
-        match self.task:
-            case Task.LONG_TERM_FORECAST | Task.SHORT_TERM_FORECAST:
-                return self.forecast(x_enc, x_mark_enc)
-            case _:
-                raise NotImplementedError
+        if self.task in (Task.LONG_TERM_FORECAST, Task.SHORT_TERM_FORECAST):
+            return self.forecast(x_enc, x_mark_enc)
+        else:
+            raise NotImplementedError

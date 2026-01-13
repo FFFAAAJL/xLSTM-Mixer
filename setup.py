@@ -22,6 +22,12 @@ def read(*paths, **kwargs):
 
 
 def read_requirements(path):
+    if isinstance(path, list):
+        reqs = []
+        for p in path:
+            reqs.extend(read_requirements(p))
+        return reqs
+
     return [
         line.strip()
         for line in read(path).split("\n")
@@ -31,13 +37,13 @@ def read_requirements(path):
 
 setup(
     name="xlstm_mixer",
-    version=read("xlstm_mixer", "VERSION"),
+    version="0.1.0",
     description="xLSTM-MIXER for forecasting", 
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     packages=find_packages(exclude=[".docker", ".devcontainer", ".github"]),
     install_requires=read_requirements(
-        ["requirements.txt", "lightning-requirements.txt"]
+        ["requirements.txt", "lightning_requirements.txt"]
     ),
     entry_points={"console_scripts": ["xlstm_mixer = xlstm_mixer.__main__:main"]},
 )

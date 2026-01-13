@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 import torch
 import numpy as np
 from xlstm_mixer.lit.enums import ForecastingTaskOptions
+from lightning.pytorch.loggers import WandbLogger
+import wandb
 
 
 class ForecastVisualizeCallback(Callback):
@@ -25,7 +27,13 @@ class ForecastVisualizeCallback(Callback):
         batch_y = []
         batch_x_mark = []
         batch_y_mark = []
-        for i in self.idxs:
+        
+        # Check if dataset is large enough
+        idxs = [i for i in self.idxs if i < len(trainer.datamodule.train_dataset)]
+        if not idxs:
+            return
+
+        for i in idxs:
             elem_x,elem_y,elem_x_mark, elem_y_mark = trainer.datamodule.train_dataset[i]
 
             batch_x.append(elem_x)
@@ -47,14 +55,44 @@ class ForecastVisualizeCallback(Callback):
             outputs = outputs[:, -self.pred_len:, f_dim:].contiguous().detach().cpu().numpy()
             batch_y = batch_y[:, -self.pred_len:, f_dim:].contiguous().detach().cpu().numpy()
             
-            fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+            # Plotting
+            num_plots = len(idxs)
+            cols = 2
+            rows = (num_plots + 1) // 2
             
-            for i, ax in enumerate(axs.flatten()):
-                ax.plot(outputs[i], label='pred')
-                ax.plot(batch_y[i], label='true')
-                ax.legend()
+            fig, axs = plt.subplots(rows, cols, figsize=(10, 5 * rows))
+            if num_plots == 1:
+                axs = [axs]
             
+            axs_flat = axs.flatten() if isinstance(axs, np.ndarray) else [axs]
+
+            for i, ax in enumerate(axs_flat):
+                if i < num_plots:
+                    # Select the last channel to plot if multivariate
+                    # Shape is (seq_len, channels) or (channels, seq_len) - assuming (seq_len, channels) based on code
+                    # Usually time series are (seq_len, channels).
+                    # Let's plot the last channel which is often the target in univariate, or one of them in multivariate.
+                    
+                    # If shape is (batch, seq, dim)
+                    # outputs[i] is (seq, dim)
+                    
+                    # Plot last channel
+                    ax.plot(outputs[i, :, -1], label='pred')
+                    ax.plot(batch_y[i, :, -1], label='true')
+                    ax.legend()
+                    ax.set_title(f"Sample {i}")
+                else:
+                    ax.axis('off')
+            
+            plt.tight_layout()
+
+            # Save to WandB
+            if isinstance(trainer.logger, WandbLogger):
+                trainer.logger.experiment.log({"forecast_prediction": wandb.Image(fig)})
+            
+            # Save locally
             os.makedirs('pics', exist_ok=True)
             plt.savefig(f'pics/epoch_{trainer.current_epoch}.pdf', bbox_inches='tight')
-        pl_module.train()
+            plt.close(fig)
 
+        pl_module.train()
