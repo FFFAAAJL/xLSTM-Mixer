@@ -6,7 +6,6 @@ REM Usage: weather.bat [--dev]
 REM --dev: Quick test mode (run only one batch)
 
 REM Set WandB API Key
-set WANDB_API_KEY=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
 
 REM Set up Visual Studio environment for CUDA extensions (if needed)
 if exist "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" (

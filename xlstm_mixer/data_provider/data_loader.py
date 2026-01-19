@@ -802,7 +802,7 @@ class Dataset_PEMS(Dataset):
         self._data_all = df
 
     def __getitem__(self, index):
-        if self.set_type == 2:  # test:首尾相连
+        if self.set_type == 2:  # test: connect head to tail
             s_begin = index * 12
         else:
             s_begin = index
@@ -818,7 +818,7 @@ class Dataset_PEMS(Dataset):
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 
     def __len__(self):
-        if self.set_type == 2:  # test:首尾相连
+        if self.set_type == 2:  # test: connect head to tail
             return (len(self.data_x) - self.seq_len - self.pred_len + 1) // 12
         else:
             return len(self.data_x) - self.seq_len - self.pred_len + 1
@@ -862,7 +862,7 @@ class Dataset_Solar(Dataset):
         df_raw = []
         with open(os.path.join(self.root_path, self.data_path), "r", encoding='utf-8') as f:
             for line in f.readlines():
-                line = line.strip('\n').split(',')  # 去除文本中的换行符
+                line = line.strip('\n').split(',')  # Remove newline characters from text
                 data_line = np.stack([float(i) for i in line])
                 df_raw.append(data_line)
         df_raw = np.stack(df_raw, 0)

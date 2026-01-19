@@ -2,7 +2,7 @@ import os
 import sys
 
 # ================= Configuration =================
-WANDB_API_KEY = "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"
+WANDB_API_KEY = os.getenv("WANDB_API_KEY", "")
 DATASET_NAME = "Electricity"
 DATASET_PATH = r"E:\LSTM\xLSTM-Mixer-main\xLSTM-Mixer\common-ts\datasets\tslib_datasets"
 SEEDS = [2021, 2022, 2023]
@@ -11,7 +11,7 @@ OUTPUT_BAT_FILE = "run_electricity_tasks.bat"
 # =================================================
 
 def generate_bat_script():
-    # 定义清理构建的 Python 单行命令 (在 Windows bat 中直接调用)
+    # Define Python one-liner command to clean build artifacts (called directly in Windows bat)
     clean_cmd = (
         'python -c "import shutil, os; '
         'p=os.path.join(os.environ.get(\'LOCALAPPDATA\', \'\'), \'torch_extensions\'); '
@@ -19,7 +19,7 @@ def generate_bat_script():
         'shutil.rmtree(\'build\', ignore_errors=True)"'
     )
 
-    # 基础配置
+    # Basic configuration
     configs = [
         # Config 1: pred_len=96
         {
@@ -76,7 +76,7 @@ def generate_bat_script():
     for cfg in configs:
         lines.append(f":: === Config: pred_len={cfg['pred_len']} ===")
         
-        # 如果 embedding_dim 变化，插入清理命令
+        # If embedding_dim changes, insert cleanup command
         if last_embedding_dim is not None and cfg['embedding_dim'] != last_embedding_dim:
             lines.append("echo >>> Cleaning build artifacts for new embedding dim...")
             lines.append(clean_cmd)
@@ -84,7 +84,7 @@ def generate_bat_script():
         last_embedding_dim = cfg['embedding_dim']
 
         for seed in SEEDS:
-            # 使用 caret (^) 将长命令拆分为多行，提高可读性并避免单行过长问题
+            # Use caret (^) to split long command into multiple lines for readability and to avoid single line too long
             parts = [
                 f"python -m xlstm_mixer fit+test",
                 f"--data ForecastingTSLibDataModule",
@@ -117,14 +117,14 @@ def generate_bat_script():
                 f"--forecast_visualize_cb.freq_epoch 5"
             ]
             
-            # 使用 ^ 换行连接
+            # Use ^ for line continuation
             cmd = " ^\n    ".join(parts)
             
             lines.append(f"echo Running seed {seed}...")
             lines.append(cmd)
-            # 添加错误检查，如果出错则暂停，方便查看
+            # Add error check, pause if error occurs for easy viewing
             lines.append("if %errorlevel% neq 0 (")
-            lines.append("    echo !!! Command failed!")
+            lines.append("    echo ERROR: Command failed!")
             lines.append("    pause")
             lines.append("    exit /b %errorlevel%")
             lines.append(")")

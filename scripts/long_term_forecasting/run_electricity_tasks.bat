@@ -10,9 +10,12 @@ if %errorlevel% neq 0 (
     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 )
 
-set WANDB_API_KEY=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
-echo Login to WandB...
-wandb login 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
+if defined WANDB_API_KEY (
+    echo Login to WandB...
+    wandb login %WANDB_API_KEY%
+) else (
+    echo WANDB_API_KEY not set; skipping wandb login.
+)
 
 :: === Config: pred_len=96 ===
 echo Running seed 2021...
@@ -39,14 +42,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_96_2021 ^
+    --trainer.logger.name Electricity_xlstm-mixer_96_2021_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2021 ^
     --forecast_visualize_cb.pred_len 96 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -75,14 +78,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_96_2022 ^
+    --trainer.logger.name Electricity_xlstm-mixer_96_2022_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2022 ^
     --forecast_visualize_cb.pred_len 96 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -111,14 +114,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_96_2023 ^
+    --trainer.logger.name Electricity_xlstm-mixer_96_2023_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2023 ^
     --forecast_visualize_cb.pred_len 96 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -150,14 +153,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 25 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_192_2021 ^
+    --trainer.logger.name Electricity_xlstm-mixer_192_2021_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2021 ^
     --forecast_visualize_cb.pred_len 192 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -186,14 +189,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 25 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_192_2022 ^
+    --trainer.logger.name Electricity_xlstm-mixer_192_2022_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2022 ^
     --forecast_visualize_cb.pred_len 192 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -222,14 +225,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 25 ^
     --lr_scheduler.warmup_epochs 5 ^
-    --trainer.logger.name Electricity_xlstm-mixer_192_2023 ^
+    --trainer.logger.name Electricity_xlstm-mixer_192_2023_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2023 ^
     --forecast_visualize_cb.pred_len 192 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -259,14 +262,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 7 ^
-    --trainer.logger.name Electricity_xlstm-mixer_336_2021 ^
+    --trainer.logger.name Electricity_xlstm-mixer_336_2021_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2021 ^
     --forecast_visualize_cb.pred_len 336 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -295,14 +298,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 7 ^
-    --trainer.logger.name Electricity_xlstm-mixer_336_2022 ^
+    --trainer.logger.name Electricity_xlstm-mixer_336_2022_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2022 ^
     --forecast_visualize_cb.pred_len 336 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -331,14 +334,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 20 ^
     --lr_scheduler.warmup_epochs 7 ^
-    --trainer.logger.name Electricity_xlstm-mixer_336_2023 ^
+    --trainer.logger.name Electricity_xlstm-mixer_336_2023_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2023 ^
     --forecast_visualize_cb.pred_len 336 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -368,14 +371,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 10 ^
     --lr_scheduler.warmup_epochs 15 ^
-    --trainer.logger.name Electricity_xlstm-mixer_720_2021 ^
+    --trainer.logger.name Electricity_xlstm-mixer_720_2021_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2021 ^
     --forecast_visualize_cb.pred_len 720 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -404,14 +407,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 10 ^
     --lr_scheduler.warmup_epochs 15 ^
-    --trainer.logger.name Electricity_xlstm-mixer_720_2022 ^
+    --trainer.logger.name Electricity_xlstm-mixer_720_2022_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2022 ^
     --forecast_visualize_cb.pred_len 720 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )
@@ -440,14 +443,14 @@ python -m xlstm_mixer fit+test ^
     --lr_scheduler.gamma 0.99 ^
     --lr_scheduler.cosine_epochs 10 ^
     --lr_scheduler.warmup_epochs 15 ^
-    --trainer.logger.name Electricity_xlstm-mixer_720_2023 ^
+    --trainer.logger.name Electricity_xlstm-mixer_720_2023_NoPruning ^
     --trainer.logger.project xlstm-mixer ^
     --trainer.max_epochs 40 ^
     --seed_everything 2023 ^
     --forecast_visualize_cb.pred_len 720 ^
     --forecast_visualize_cb.freq_epoch 5
 if %errorlevel% neq 0 (
-    echo !!! Command failed!
+    echo ERROR: Command failed
     pause
     exit /b %errorlevel%
 )

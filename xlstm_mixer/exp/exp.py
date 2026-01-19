@@ -1,10 +1,12 @@
 import inspect
 from pathlib import Path
 from typing import Any, Literal, Union, Optional
+from contextlib import contextmanager
 from lightning import LightningModule
 import os
 from matplotlib import pyplot as plt
 import torch
+import nvtx
 
 from xlstm_mixer.models.base_model import BaseModel
 from ..models.xLSTMTime import xLSTMTime
@@ -69,9 +71,38 @@ class ForecastingExp(LightningModule):
         #     for i in range(len(self.model.mem_tokens)):
         #         setattr(self, f"tok_content_token_{i}", [])
 
+    def _nvtx_enabled(self) -> bool:
+        """Check if NVTX is enabled via environment variable"""
+        return torch.cuda.is_available() and (os.getenv("NVTX_ENABLE", "1") != "0")
+
+    @contextmanager
+    def _nvtx_range(self, name: str):
+        """Safe NVTX range context manager with try/finally protection"""
+        if self._nvtx_enabled():
+            nvtx.push_range(name)
+        try:
+            yield
+        finally:
+            if self._nvtx_enabled():
+                nvtx.pop_range()
+
+    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """Start NVTX profiling for the first batch (includes forward + backward + optimizer step)"""
+        if self._nvtx_enabled() and batch_idx == 0:
+            torch.cuda.synchronize()
+            nvtx.push_range("NSYS_PROFILE")  # Key: use this name for capture-range
+
+    def on_train_batch_end(self, outputs: Any, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        """End NVTX profiling for the first batch"""
+        if self._nvtx_enabled() and batch_idx == 0:
+            torch.cuda.synchronize()
+            nvtx.pop_range()
+
     def training_step(
         self, batch: BatchType
     ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
+        # NVTX is controlled at batch level (on_train_batch_start/end)
+        # which covers forward + backward + optimizer step
         batch_x, batch_y, batch_x_mark, batch_y_mark = batch
         batch_x = batch_x.float()
         batch_y = batch_y.float()
@@ -91,7 +122,6 @@ class ForecastingExp(LightningModule):
         loss = self.criterion(outputs, batch_y)
 
         self.log("train/loss", loss, prog_bar=True, on_epoch=True, on_step=True)
-
         self.log_dict(
             self.train_metrics(outputs, batch_y),
             prog_bar=False,
@@ -99,52 +129,67 @@ class ForecastingExp(LightningModule):
             on_step=False,
         )
 
-
-
         return loss
+
+    # NVTX is controlled at batch level, so no need for backward/optimizer hooks
 
     def validation_step(
         self, batch: BatchType
     ) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
-        batch_x, batch_y, batch_x_mark, batch_y_mark = batch
-        batch_x = batch_x.float()
-        batch_y = batch_y.float()
-        batch_x_mark = batch_x_mark.float()
-        batch_y_mark = batch_y_mark.float()
+        # Strict push/pop pairing for validation step
+        if self._nvtx_enabled():
+            nvtx.push_range("validation_step")
+        
+        try:
+            batch_x, batch_y, batch_x_mark, batch_y_mark = batch
+            batch_x = batch_x.float()
+            batch_y = batch_y.float()
+            batch_x_mark = batch_x_mark.float()
+            batch_y_mark = batch_y_mark.float()
 
-        dec_input = None
-        outputs = self.model(batch_x, batch_x_mark, dec_input, batch_y_mark)
+            dec_input = None
 
-        f_dim = (
-            -1
-            if self.task_options == ForecastingTaskOptions.MULTIVARIATE_2_UNIVARIATE
-            else 0
-        )
-        outputs = outputs[:, -self.pred_len :, f_dim:].contiguous()
-        batch_y = batch_y[:, -self.pred_len :, f_dim:].contiguous()
-        loss = self.criterion(outputs, batch_y)
+            if self._nvtx_enabled():
+                nvtx.push_range("forward_pass")
+            try:
+                outputs = self.model(batch_x, batch_x_mark, dec_input, batch_y_mark)
+            finally:
+                if self._nvtx_enabled():
+                    nvtx.pop_range()
 
-        self.log("val/loss", loss, prog_bar=True, on_epoch=True, on_step=False)
+            f_dim = (
+                -1
+                if self.task_options == ForecastingTaskOptions.MULTIVARIATE_2_UNIVARIATE
+                else 0
+            )
+            outputs = outputs[:, -self.pred_len :, f_dim:].contiguous()
+            batch_y = batch_y[:, -self.pred_len :, f_dim:].contiguous()
+            loss = self.criterion(outputs, batch_y)
 
-        if self.task == Task.SHORT_TERM_FORECAST and self.trainer.datamodule.data == "PEMS":
-            B, T, C = outputs.shape
-            outputs = self.trainer.datamodule.val_dataset.inverse_transform(outputs.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
-            batch_y = self.trainer.datamodule.val_dataset.inverse_transform(batch_y.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
-            self.val_outputs.append(outputs)
-            self.val_targets.append(batch_y)
-            outputs = torch.from_numpy(outputs).to(batch_x.device)
-            batch_y = torch.from_numpy(batch_y).to(batch_x.device)
+            self.log("val/loss", loss, prog_bar=True, on_epoch=True, on_step=False)
 
-        self.log_dict(
-            self.val_metrics(outputs, batch_y),
-            prog_bar=True,
-            on_epoch=True,
-            on_step=False,
-        )
+            if self.task == Task.SHORT_TERM_FORECAST and self.trainer.datamodule.data == "PEMS":
+                B, T, C = outputs.shape
+                outputs = self.trainer.datamodule.val_dataset.inverse_transform(outputs.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
+                batch_y = self.trainer.datamodule.val_dataset.inverse_transform(batch_y.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
+                self.val_outputs.append(outputs)
+                self.val_targets.append(batch_y)
+                outputs = torch.from_numpy(outputs).to(batch_x.device)
+                batch_y = torch.from_numpy(batch_y).to(batch_x.device)
 
-        # self.mem_tokens.append(self.model.mem_tokens)
+            self.log_dict(
+                self.val_metrics(outputs, batch_y),
+                prog_bar=True,
+                on_epoch=True,
+                on_step=False,
+            )
 
-        return loss
+            # self.mem_tokens.append(self.model.mem_tokens)
+
+            return loss
+        finally:
+            if self._nvtx_enabled():
+                nvtx.pop_range()
     
     def plot_mem_tokens(self, tok_path , mem_tokens, name, idx):
 
@@ -191,38 +236,53 @@ class ForecastingExp(LightningModule):
         
 
     def test_step(self, batch: BatchType) -> Optional[Union[torch.Tensor, os.Mapping[str, Any]]]:
-        batch_x, batch_y, batch_x_mark, batch_y_mark = batch
-        batch_x = batch_x.float()
-        batch_y = batch_y.float()
-        batch_x_mark = batch_x_mark.float()
-        batch_y_mark = batch_y_mark.float()
+        # Strict push/pop pairing for test step
+        if self._nvtx_enabled():
+            nvtx.push_range("test_step")
+        
+        try:
+            batch_x, batch_y, batch_x_mark, batch_y_mark = batch
+            batch_x = batch_x.float()
+            batch_y = batch_y.float()
+            batch_x_mark = batch_x_mark.float()
+            batch_y_mark = batch_y_mark.float()
 
-        dec_input = None
-        outputs = self.model(batch_x, batch_x_mark, dec_input, batch_y_mark)
+            dec_input = None
 
-        f_dim = (
-            -1
-            if self.task_options == ForecastingTaskOptions.MULTIVARIATE_2_UNIVARIATE
-            else 0
-        )
-        outputs = outputs[:, -self.pred_len :, f_dim:].contiguous()
-        batch_y = batch_y[:, -self.pred_len :, f_dim:].contiguous()
+            if self._nvtx_enabled():
+                nvtx.push_range("forward_pass")
+            try:
+                outputs = self.model(batch_x, batch_x_mark, dec_input, batch_y_mark)
+            finally:
+                if self._nvtx_enabled():
+                    nvtx.pop_range()
 
-        if self.task == Task.SHORT_TERM_FORECAST and self.trainer.datamodule.data == "PEMS":
-            B, T, C = outputs.shape
-            outputs = self.trainer.datamodule.test_dataset.inverse_transform(outputs.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
-            batch_y = self.trainer.datamodule.test_dataset.inverse_transform(batch_y.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
-            self.test_outputs.append(outputs)
-            self.test_targets.append(batch_y)
-            outputs = torch.from_numpy(outputs).to(batch_x.device)
-            batch_y = torch.from_numpy(batch_y).to(batch_x.device)
+            f_dim = (
+                -1
+                if self.task_options == ForecastingTaskOptions.MULTIVARIATE_2_UNIVARIATE
+                else 0
+            )
+            outputs = outputs[:, -self.pred_len :, f_dim:].contiguous()
+            batch_y = batch_y[:, -self.pred_len :, f_dim:].contiguous()
 
-        self.log_dict(
-            self.test_metrics(outputs, batch_y),
-            prog_bar=True,
-            on_epoch=True,
-            on_step=False,
-        )
+            if self.task == Task.SHORT_TERM_FORECAST and self.trainer.datamodule.data == "PEMS":
+                B, T, C = outputs.shape
+                outputs = self.trainer.datamodule.test_dataset.inverse_transform(outputs.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
+                batch_y = self.trainer.datamodule.test_dataset.inverse_transform(batch_y.reshape(-1, C).detach().cpu().numpy()).reshape(B, T, C)
+                self.test_outputs.append(outputs)
+                self.test_targets.append(batch_y)
+                outputs = torch.from_numpy(outputs).to(batch_x.device)
+                batch_y = torch.from_numpy(batch_y).to(batch_x.device)
+
+            self.log_dict(
+                self.test_metrics(outputs, batch_y),
+                prog_bar=True,
+                on_epoch=True,
+                on_step=False,
+            )
+        finally:
+            if self._nvtx_enabled():
+                nvtx.pop_range()
     
     def on_test_epoch_end(self):
         if self.task == Task.SHORT_TERM_FORECAST and self.trainer.datamodule.data == "PEMS":
